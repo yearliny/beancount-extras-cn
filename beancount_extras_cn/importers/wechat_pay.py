@@ -49,6 +49,7 @@ class WeChatPayImporter(importer.ImporterProtocol):
         self.config = config if config else {}
         self.currency = "CNY"
 
+        self.account_mapping['/'] = self.wechat_account
         self.display_meta_time = self.config.get('DISPLAY_META_TIME', False)
         if 'TAG' in self.config.keys():
             self.tags.add(config['TAG'])
@@ -139,10 +140,10 @@ class WeChatPayImporter(importer.ImporterProtocol):
                     break
 
             # 对于特殊交易类型，将收款人置空，交易描述为交易类型
-            special_trade_type = ['零钱提现', '群收款', '微信红包-退款']
+            special_trade_type = ['零钱提现', '群收款', '微信红包', '微信红包-退款']
             if item.trade_type in special_trade_type:
                 payee = None
-                narration = item.trade_type
+                narration = f'{item.trade_type}-{item.payee}'
 
             # 开始添加 postings
             if item.trade_type == '零钱提现':
