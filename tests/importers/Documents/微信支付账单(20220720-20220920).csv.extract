@@ -10,7 +10,7 @@
 2022-09-17 * "王小锤" "这是转账备注"
   Assets:Bank:CMB  -3170.00 CNY
 
-2022-09-17 * "零钱提现"
+2022-09-17 * "零钱提现-招商银行(1234)"
   Assets:TPP:Wechat  -5.22 CNY
   Assets:Bank:CMB     5.22 CNY
 

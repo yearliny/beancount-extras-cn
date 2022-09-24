@@ -143,7 +143,8 @@ class WeChatPayImporter(importer.ImporterProtocol):
             special_trade_type = ['零钱提现', '群收款', '微信红包', '微信红包-退款']
             if item.trade_type in special_trade_type:
                 payee = None
-                narration = f'{item.trade_type}-{item.payee}'
+                # 拼接交易描述，并清理收款人可能为空 / 的情况
+                narration = f'{item.trade_type}-{item.payee}'.removesuffix('-/')
 
             # 开始添加 postings
             if item.trade_type == '零钱提现':
