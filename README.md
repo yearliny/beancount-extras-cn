@@ -25,7 +25,7 @@ account_mapping = {
 }
 
 CONFIG = [
-    WeChatPayImporter(account="Assets:TPP:Wechat", account_mapping=account_mapping),
+    WeChatPayImporter(wechat_account="Assets:TPP:Wechat", account_mapping=account_mapping),
 ]
 ```
 

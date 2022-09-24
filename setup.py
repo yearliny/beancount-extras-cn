@@ -9,6 +9,6 @@ setup(
     url='https://yearliny.com',
     packages=find_packages(),
     install_requires=[
-        "beancount>=2.3.0",
+        "beancount~=2.3.0",
     ]
 )
