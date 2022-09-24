@@ -77,10 +77,12 @@ class WeChatPayImporter(importer.ImporterProtocol):
                 next(csvfile)
             csvreader = csv.DictReader(csvfile)
             for row in csvreader:
+                # 对商品名称进行清洗和截取
                 goods_name = row['商品'] \
                     .removeprefix('/') \
                     .removeprefix('转账备注:') \
                     .removeprefix('收款方备注:')
+                goods_name = goods_name if len(goods_name) < 15 else goods_name[0:15] + '...'
                 try:
                     # 判断是否是 支出类型账单
                     is_pay = row['收/支'] == '支出'
@@ -136,7 +138,9 @@ class WeChatPayImporter(importer.ImporterProtocol):
                     account = acct
                     break
 
-            if item.trade_type.startswith('微信红包') or item.trade_type.startswith('零钱提现'):
+            # 对于特殊交易类型，将收款人置空，交易描述为交易类型
+            special_trade_type = ['零钱提现', '群收款', '微信红包-退款']
+            if item.trade_type in special_trade_type:
                 payee = None
                 narration = item.trade_type
 
