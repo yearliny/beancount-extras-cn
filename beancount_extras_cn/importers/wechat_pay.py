@@ -44,12 +44,16 @@ class WeChatPayImporter(importer.ImporterProtocol):
             TAG：标签，为此导入器导入的账单统一添加固定标签，如 wechat
         """
         self.wechat_account = wechat_account
-        self.account_mapping = account_mapping
+        self.account_mapping = {
+            '/': wechat_account,
+            '零钱': wechat_account
+        }
+        if account_mapping:
+            self.account_mapping.update(account_mapping)
         self.tags = set()
-        self.config = config if config else {}
         self.currency = "CNY"
 
-        self.account_mapping['/'] = self.wechat_account
+        self.config = config if config else {}
         self.display_meta_time = self.config.get('DISPLAY_META_TIME', False)
         if 'TAG' in self.config.keys():
             self.tags.add(config['TAG'])
@@ -96,16 +100,16 @@ class WeChatPayImporter(importer.ImporterProtocol):
                     continue
                 bill = WxPayBillInfo(
                     trade_time=parser.parse(row['交易时间']),
-                    trade_type=row['交易类型'],
-                    payee=row['交易对方'],
-                    goods_name=goods_name,
+                    trade_type=row['交易类型'].strip(),
+                    payee=row['交易对方'].strip(),
+                    goods_name=goods_name.strip(),
                     is_pay=is_pay,
                     amount=amount,
-                    pay_source=row['支付方式'],
-                    trade_status=row['当前状态'],
-                    transaction_id=row['交易单号'],
-                    out_trade_no=row['商户单号'],
-                    comment=row['备注']
+                    pay_source=row['支付方式'].strip(),
+                    trade_status=row['当前状态'].strip(),
+                    transaction_id=row['交易单号'].strip(),
+                    out_trade_no=row['商户单号'].strip(),
+                    comment=row['备注'].strip()
                 )
                 result.append(bill)
         return result
@@ -139,12 +143,16 @@ class WeChatPayImporter(importer.ImporterProtocol):
                     account = acct
                     break
 
-            # 对于特殊交易类型，将收款人置空，交易描述为交易类型
-            special_trade_type = ['零钱提现', '群收款', '微信红包', '微信红包-退款']
+            # 交易描述默认为商品名称 goods_name，但特定交易类型商品名称为空，需要重新处理商品名称
+            special_trade_type = ['零钱提现', '微信红包', '微信红包-退款', '微信红包（单发）', '群收款']
             if item.trade_type in special_trade_type:
-                payee = None
                 # 拼接交易描述，并清理收款人可能为空 / 的情况
                 narration = f'{item.trade_type}-{item.payee}'.removesuffix('-/')
+                payee = None
+            elif item.trade_type.endswith('-退款'):
+                # 当为商户退款交易时，交易描述设为退款类型
+                narration = item.trade_type
+                payee = None
 
             # 开始添加 postings
             if item.trade_type == '零钱提现':

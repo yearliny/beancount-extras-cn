@@ -1,18 +1,54 @@
-2022-08-07 * "美团平台商户" "美团订单-2208071110..."
-  Assets:Bank:CMB  -52.50 CNY
+2022-07-21 * "有货GG-退款"
+  Assets:Bank:CMB  14.19 CNY
 
-2022-09-12 * "王大锤" "微信转账"
-  Assets:Bank:CMB  -30.00 CNY
+2022-07-21 * "有货GG" "小程序订单支付"
+  Assets:Bank:CMB  -70.58 CNY
+
+2022-07-21 * "小王" "微信转账"
+  Assets:TPP:Wechat  16.00 CNY
+
+2022-07-22 * "美团平台商户-退款"
+  Assets:Bank:CMB  69.00 CNY
+
+2022-07-25 * "拼多多平台商户" "商户单号XP162207251..."
+  Assets:Bank:CMB  -128.43 CNY
+
+2022-07-30 * "拼多多平台商户-退款"
+  Assets:Bank:CMB  12.90 CNY
+
+2022-08-23 * "拼多多平台商户" "商户单号XP162208231..."
+  Assets:Bank:CMB  -77.00 CNY
+
+2022-08-25 * "汤老大" "二维码收款"
+  Assets:TPP:Wechat  6.00 CNY
+
+2022-08-31 * "拼多多平台商户-退款"
+  Assets:Bank:CMB  77.00 CNY
+
+2022-09-09 * "群收款-王小锤"
+  Assets:TPP:Wechat  -5.20 CNY
+
+2022-09-10 * "微信红包-张疗"
+  Assets:TPP:Wechat  200.00 CNY
+
+2022-09-10 * "群收款-王小锤"
+  Assets:TPP:Wechat  5.20 CNY
+
+2022-09-13 * "微信红包（单发）-发给 王小锤"
+  Assets:Bank:CMB  -200.00 CNY
 
 2022-09-14 * "微信红包-退款"
   Assets:Bank:CMB  200.00 CNY
 
-2022-09-17 * "王小锤" "这是转账备注"
+2022-09-15 * "蔬菜店" "二维码收款"
+  Assets:TPP:Wechat  -20.60 CNY
+
+2022-09-17 * "国菜老" "健身办卡费用"
   Assets:Bank:CMB  -3170.00 CNY
 
 2022-09-17 * "零钱提现-招商银行(1234)"
   Assets:TPP:Wechat  -5.22 CNY
   Assets:Bank:CMB     5.22 CNY
 
-2022-09-19 * "喜多多便利店" "二维码收款"
-  Assets:Bank:CMB  -28.50 CNY
+2022-09-19 * "好再来便利店" "二维码收款"
+  Assets:Bank:CMB  -9.00 CNY
