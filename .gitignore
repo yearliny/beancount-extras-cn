@@ -1,0 +1,4 @@
+/.idea
+/.pytest_cache
+/beancount_extras_cn.egg-info
+/build
