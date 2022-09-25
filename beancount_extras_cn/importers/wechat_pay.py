@@ -64,7 +64,8 @@ class WeChatPayImporter(importer.ImporterProtocol):
         return bool(match)
 
     def file_name(self, file):
-        return None
+        match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
+        return f'微信支付账单_{match.group(1)}-{match.group(2)}.csv'
 
     def file_account(self, _):
         return self.wechat_account
