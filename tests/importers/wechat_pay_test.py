@@ -1,3 +1,4 @@
+import os
 import unittest
 from os import path
 
@@ -10,10 +11,11 @@ accountDict = {
     "零钱": "Assets:TPP:Wechat",
 }
 IMPORTER = WeChatPayImporter("Assets:TPP:Wechat", accountDict)
+TEST_DIR = os.path.join(path.dirname(__file__), 'wechat_pay_test_docs')
 
 
 @regtest.with_importer(IMPORTER)
-@regtest.with_testdir(path.dirname(__file__))
+@regtest.with_testdir(TEST_DIR)
 class TestWeChatPayImporter(regtest.ImporterTestBase):
     pass
 

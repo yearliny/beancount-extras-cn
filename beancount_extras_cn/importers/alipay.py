@@ -15,24 +15,38 @@ from dateutil import parser
 
 
 @dataclass
-class WxPayBillInfo:
-    trade_time: datetime
+class AlipayBillInfo:
+    # 交易类型 [支出|收入|其他]
     trade_type: str
+    # 交易时间
+    trade_time: datetime
+    # 交易对方
     payee: str
+    # 商品名称
     goods_name: str
+    # 是否是支付
     is_pay: bool
+    # 交易金额
     amount: Amount
+    # 支付方式
     pay_source: str
+    # 交易状态
     trade_status: str
+    # 交易订单号（渠道订单号）
     transaction_id: str
+    # 商家订单号
     out_trade_no: str
-    comment: str
+    # 交易分类，支付宝分类
+    category: str
 
 
-class WeChatPayImporter(importer.ImporterProtocol):
-    """An importer for WeChat Pay CSV files."""
+class AlipayImporter(importer.ImporterProtocol):
+    """An importer for Alipay CSV files."""
 
-    FILE_NAME_REGEX = r"^微信支付账单\((\d{8})-(\d{8})\)\.csv$"
+    # 支付宝账单名称匹配正则。 eg. alipay_record_20220825_150818.csv
+    FILE_NAME_REGEX = r"^alipay_record_(\d{8})_(\d{6})\.csv$"
+    # 账单起始时间匹配
+    BILL_DATA_REGEX = r"起始时间：\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+终止时间：\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]"
 
     def __init__(self, account: str, account_mapping: Dict[str, str] = None, config: Dict[str, Any] = None):
         """
@@ -45,8 +59,7 @@ class WeChatPayImporter(importer.ImporterProtocol):
         """
         self.account = account
         self.account_mapping = {
-            '/': account,
-            '零钱': account
+            '余额': account
         }
         if account_mapping:
             self.account_mapping.update(account_mapping)
@@ -60,57 +73,68 @@ class WeChatPayImporter(importer.ImporterProtocol):
 
     def identify(self, file):
         # 使用账单文件名称判断能否处理此账单
-        match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
+        match = re.match(AlipayImporter.FILE_NAME_REGEX, path.basename(file.name))
         return bool(match)
 
     def file_name(self, file):
-        match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
-        return f'微信支付账单_{match.group(1)}-{match.group(2)}.csv'
+        with open(file.name, encoding="gbk") as csvfile:
+            content = csvfile.read()
+            match = re.search(AlipayImporter.BILL_DATA_REGEX, content)
+            start_date = parser.parse(match.group(1)).date().strftime('%Y%m%d')
+            end_date = parser.parse(match.group(2)).date().strftime('%Y%m%d')
+            return f'支付宝账单_{start_date}-{end_date}.csv'
 
     def file_account(self, _):
         return self.account
 
     def file_date(self, file):
         # Extract the statement date from the filename.
-        match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
-        return datetime.strptime(match.group(2), '%Y%m%d').date()
+        match = re.match(AlipayImporter.FILE_NAME_REGEX, path.basename(file.name))
+        return datetime.strptime(match.group(1), '%Y%m%d').date()
 
-    def _parse_csv(self, file) -> list[WxPayBillInfo]:
+    def _parse_csv(self, file) -> list[AlipayBillInfo]:
         """解析 CSV 文件，转换成格式良好的 WxPayBillInfo dataclass """
         result = []
-        with open(file.name, encoding="utf-8") as csvfile:
-            for _ in range(16):
+        with open(file.name, encoding="gbk") as csvfile:
+            # 跳过前两行
+            for i in range(2):
                 next(csvfile)
-            csvreader = csv.DictReader(csvfile)
+            col = ['收/支', '交易对方', '对方账号', '商品说明', '收/付款方式', '金额', '交易状态', '交易分类', '交易订单号', '商家订单号', '交易时间']
+            csvreader = csv.DictReader(csvfile, fieldnames=col)
             for row in csvreader:
+                # 清理无效字段，跳过无效行
+                if None in row:
+                    del row[None]
+                if not row['交易时间']:
+                    continue
+                # 由于支付宝对列进行空格填充，所以先处理进行去除空格处理
+                row = {k.strip(): v.strip() for k, v in row.items()}
+
                 # 对商品名称进行清洗和截取
-                goods_name = row['商品'] \
-                    .removeprefix('/') \
-                    .removeprefix('转账备注:') \
-                    .removeprefix('收款方备注:')
+                goods_name = row['商品说明']
                 goods_name = goods_name if len(goods_name) < 15 else goods_name[0:15] + '...'
                 try:
                     # 判断是否是 支出类型账单
                     is_pay = row['收/支'] == '支出'
                     # 解析账单金额
-                    amount = row['金额(元)'].lstrip("¥")
+                    amount = row['金额']
                     amount = Amount(D(amount), self.currency)
                     if is_pay:
                         amount = -amount
                 except ValueError:
                     continue
-                bill = WxPayBillInfo(
+                bill = AlipayBillInfo(
+                    trade_type=row['收/支'],
                     trade_time=parser.parse(row['交易时间']),
-                    trade_type=row['交易类型'].strip(),
                     payee=row['交易对方'].strip(),
                     goods_name=goods_name.strip(),
                     is_pay=is_pay,
                     amount=amount,
-                    pay_source=row['支付方式'].strip(),
-                    trade_status=row['当前状态'].strip(),
-                    transaction_id=row['交易单号'].strip(),
-                    out_trade_no=row['商户单号'].strip(),
-                    comment=row['备注'].strip()
+                    pay_source=row['收/付款方式'].strip(),
+                    trade_status=row['交易状态'].strip(),
+                    transaction_id=row['交易订单号'].strip(),
+                    out_trade_no=row['商家订单号'].strip(),
+                    category=row['交易分类'].strip(),
                 )
                 result.append(bill)
         return result
@@ -144,24 +168,8 @@ class WeChatPayImporter(importer.ImporterProtocol):
                     account = acct
                     break
 
-            # 交易描述默认为商品名称 goods_name，但特定交易类型商品名称为空，需要重新处理商品名称
-            special_trade_type = ['零钱提现', '微信红包', '微信红包-退款', '微信红包（单发）', '群收款']
-            if item.trade_type in special_trade_type:
-                # 拼接交易描述，并清理收款人可能为空 / 的情况
-                narration = f'{item.trade_type}-{item.payee}'.removesuffix('-/')
-                payee = None
-            elif item.trade_type.endswith('-退款'):
-                # 当为商户退款交易时，交易描述设为退款类型
-                narration = item.trade_type
-                payee = None
-
             # 开始添加 postings
-            if item.trade_type == '零钱提现':
-                # 如果是零钱提现，则添加两笔 posting，分别对应微信账户减少和第三方账户增加
-                postings.append(data.Posting(self.account, -amount, None, None, None, None))
-                postings.append(data.Posting(account, amount, None, None, None, None))
-            else:
-                postings.append(data.Posting(account, amount, None, None, None, None))
+            postings.append(data.Posting(account, amount, None, None, None, None))
 
             txn = data.Transaction(
                 meta,
