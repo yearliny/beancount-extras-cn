@@ -148,7 +148,7 @@ class AlipayImporter(importer.ImporterProtocol):
         """
         entries = []
         bill_list = self._parse_csv(file)
-        for index, item in enumerate(bill_list):
+        for index, item in enumerate(reversed(bill_list)):
             # 定义元数据、账单标记、收款人、账单描述、账单账户等字段默认值
             meta = data.new_metadata(file.name, index)
             if self.display_meta_time:

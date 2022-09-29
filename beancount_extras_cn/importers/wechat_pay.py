@@ -9,6 +9,7 @@ from typing import Dict
 
 from beancount.core import data, flags
 from beancount.core.amount import Amount
+from beancount.core.data import Transaction
 from beancount.core.number import D
 from beancount.ingest import importer
 from dateutil import parser
@@ -58,25 +59,25 @@ class WeChatPayImporter(importer.ImporterProtocol):
         if 'TAG' in self.config.keys():
             self.tags.add(config['TAG'])
 
-    def identify(self, file):
+    def identify(self, file) -> bool:
         # 使用账单文件名称判断能否处理此账单
         match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
         return bool(match)
 
-    def file_name(self, file):
+    def file_name(self, file) -> str:
         match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
         return f'微信支付账单_{match.group(1)}-{match.group(2)}.csv'
 
-    def file_account(self, _):
+    def file_account(self, _) -> str:
         return self.account
 
-    def file_date(self, file):
+    def file_date(self, file) -> data:
         # Extract the statement date from the filename.
         match = re.match(WeChatPayImporter.FILE_NAME_REGEX, path.basename(file.name))
         return datetime.strptime(match.group(2), '%Y%m%d').date()
 
     def _parse_csv(self, file) -> list[WxPayBillInfo]:
-        """解析 CSV 文件，转换成格式良好的 WxPayBillInfo dataclass """
+        """解析 CSV 文件，转换成格式良好的 WxPayBillInfo dataclass。数据解析上遵从原有数据顺序、内容 """
         result = []
         with open(file.name, encoding="utf-8") as csvfile:
             for _ in range(16):
@@ -95,8 +96,6 @@ class WeChatPayImporter(importer.ImporterProtocol):
                     # 解析账单金额
                     amount = row['金额(元)'].lstrip("¥")
                     amount = Amount(D(amount), self.currency)
-                    if is_pay:
-                        amount = -amount
                 except ValueError:
                     continue
                 bill = WxPayBillInfo(
@@ -115,7 +114,7 @@ class WeChatPayImporter(importer.ImporterProtocol):
                 result.append(bill)
         return result
 
-    def extract(self, file, existing_entries=None):
+    def extract(self, file, existing_entries=None) -> list[Transaction]:
         """
         抽取数据转为账单实体
         :param file:
@@ -124,9 +123,9 @@ class WeChatPayImporter(importer.ImporterProtocol):
         """
         entries = []
         bill_list = self._parse_csv(file)
-        for index, item in enumerate(bill_list):
+        for index, item in enumerate(reversed(bill_list)):
             # 定义元数据、账单标记、收款人、账单描述、账单账户等字段默认值
-            meta = data.new_metadata(file.name, index)
+            meta: dict[str, str] = data.new_metadata(file.name, index)
             if self.display_meta_time:
                 meta['time'] = str(item.trade_time.time())
 
@@ -134,7 +133,7 @@ class WeChatPayImporter(importer.ImporterProtocol):
             payee = item.payee
             narration = item.goods_name
             account = "Assets:FIXME"
-            amount = item.amount
+            amount = item.amount if not item.is_pay else -item.amount
             postings = []
 
             # 如果支付来源匹配到账户映射，则修改账户为对应的账户
