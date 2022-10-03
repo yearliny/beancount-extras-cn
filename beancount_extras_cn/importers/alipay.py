@@ -59,7 +59,7 @@ class AlipayImporter(importer.ImporterProtocol):
         """
         self.account = account
         self.account_mapping = {
-            '余额': account
+            "余额": account
         }
         if account_mapping:
             self.account_mapping.update(account_mapping)
@@ -67,9 +67,9 @@ class AlipayImporter(importer.ImporterProtocol):
         self.currency = "CNY"
 
         self.config = config if config else {}
-        self.display_meta_time = self.config.get('DISPLAY_META_TIME', False)
-        if 'TAG' in self.config.keys():
-            self.tags.add(config['TAG'])
+        self.display_meta_time = self.config.get("DISPLAY_META_TIME", False)
+        if "TAG" in self.config.keys():
+            self.tags.add(config["TAG"])
 
     def identify(self, file):
         # 使用账单文件名称判断能否处理此账单
@@ -80,9 +80,9 @@ class AlipayImporter(importer.ImporterProtocol):
         with open(file.name, encoding="gbk") as csvfile:
             content = csvfile.read()
             match = re.search(AlipayImporter.BILL_DATA_REGEX, content)
-            start_date = parser.parse(match.group(1)).date().strftime('%Y%m%d')
-            end_date = parser.parse(match.group(2)).date().strftime('%Y%m%d')
-            return f'支付宝账单_{start_date}-{end_date}.csv'
+            start_date = parser.parse(match.group(1)).date().strftime("%Y%m%d")
+            end_date = parser.parse(match.group(2)).date().strftime("%Y%m%d")
+            return f"支付宝账单_{start_date}-{end_date}.csv"
 
     def file_account(self, _):
         return self.account
@@ -90,7 +90,7 @@ class AlipayImporter(importer.ImporterProtocol):
     def file_date(self, file):
         # Extract the statement date from the filename.
         match = re.match(AlipayImporter.FILE_NAME_REGEX, path.basename(file.name))
-        return datetime.strptime(match.group(1), '%Y%m%d').date()
+        return datetime.strptime(match.group(1), "%Y%m%d").date()
 
     def _parse_csv(self, file) -> list[AlipayBillInfo]:
         """解析 CSV 文件，转换成格式良好的 WxPayBillInfo dataclass """
@@ -99,42 +99,43 @@ class AlipayImporter(importer.ImporterProtocol):
             # 跳过前两行
             for i in range(2):
                 next(csvfile)
-            col = ['收/支', '交易对方', '对方账号', '商品说明', '收/付款方式', '金额', '交易状态', '交易分类', '交易订单号', '商家订单号', '交易时间']
+            col = ["收/支", "交易对方", "对方账号", "商品说明", "收/付款方式", "金额", "交易状态", "交易分类",
+                   "交易订单号", "商家订单号", "交易时间"]
             csvreader = csv.DictReader(csvfile, fieldnames=col)
             for row in csvreader:
                 # 清理无效字段，跳过无效行
                 if None in row:
                     del row[None]
-                if not row['交易时间']:
+                if not row["交易时间"]:
                     continue
                 # 由于支付宝对列进行空格填充，所以先处理进行去除空格处理
                 row = {k.strip(): v.strip() for k, v in row.items()}
 
                 # 对商品名称进行清洗和截取
-                goods_name = row['商品说明']
+                goods_name = row["商品说明"]
                 goods_name = goods_name if len(goods_name) < 15 else goods_name[0:15] + '...'
                 try:
                     # 判断是否是 支出类型账单
-                    is_pay = row['收/支'] == '支出'
+                    is_pay = row["收/支"] == "支出"
                     # 解析账单金额
-                    amount = row['金额']
+                    amount = row["金额"]
                     amount = Amount(D(amount), self.currency)
                     if is_pay:
                         amount = -amount
                 except ValueError:
                     continue
                 bill = AlipayBillInfo(
-                    trade_type=row['收/支'],
-                    trade_time=parser.parse(row['交易时间']),
-                    payee=row['交易对方'].strip(),
+                    trade_type=row["收/支"],
+                    trade_time=parser.parse(row["交易时间"]),
+                    payee=row["交易对方"].strip(),
                     goods_name=goods_name.strip(),
                     is_pay=is_pay,
                     amount=amount,
-                    pay_source=row['收/付款方式'].strip(),
-                    trade_status=row['交易状态'].strip(),
-                    transaction_id=row['交易订单号'].strip(),
-                    out_trade_no=row['商家订单号'].strip(),
-                    category=row['交易分类'].strip(),
+                    pay_source=row["收/付款方式"].strip(),
+                    trade_status=row["交易状态"].strip(),
+                    transaction_id=row["交易订单号"].strip(),
+                    out_trade_no=row["商家订单号"].strip(),
+                    category=row["交易分类"].strip(),
                 )
                 result.append(bill)
         return result
@@ -152,7 +153,7 @@ class AlipayImporter(importer.ImporterProtocol):
             # 定义元数据、账单标记、收款人、账单描述、账单账户等字段默认值
             meta = data.new_metadata(file.name, index)
             if self.display_meta_time:
-                meta['time'] = str(item.trade_time.time())
+                meta["time"] = str(item.trade_time.time())
 
             flag = flags.FLAG_WARNING
             payee = item.payee
