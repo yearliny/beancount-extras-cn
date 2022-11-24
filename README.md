@@ -3,6 +3,8 @@
 beancount-extras-cn 项目的目标是实现中国常用环境下的 Beancount 插件。目前实现的有：
 
 - 微信账单导入
+- 支付宝账单导入
+- 天天基金网 price source，用于获取基金、股票净值
 
 ## Get Start
 
